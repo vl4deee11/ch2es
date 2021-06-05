@@ -21,11 +21,6 @@ func (d *HTTPD) httpF(h string, p int) string {
 	return fmt.Sprintf("http://%s:%d", h, p)
 }
 
-
-func (d *HTTPD) makeErr(err string) error {
-	return fmt.Errorf("[Clickhouse HTTP DRIVER]: %s", err)
-}
-
 func (d *HTTPD) Get(q string) ([]map[string]interface{}, error) {
 	resp, err := http.Post(d.url, "application/json", bytes.NewReader([]byte(q)))
 	if err != nil {
@@ -34,6 +29,9 @@ func (d *HTTPD) Get(q string) ([]map[string]interface{}, error) {
 	m := map[string]interface{}{}
 	body, _ := ioutil.ReadAll(resp.Body)
 	if err := json.Unmarshal(body, &m); err != nil {
+		return nil, err
+	}
+	if err := resp.Body.Close(); err != nil {
 		return nil, err
 	}
 	return m["data"].([]map[string]interface{}), nil

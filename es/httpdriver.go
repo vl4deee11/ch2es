@@ -3,8 +3,9 @@ package es
 import (
 	"context"
 	"fmt"
-	"github.com/olivere/elastic/v7"
 	"log"
+
+	"github.com/olivere/elastic/v7"
 )
 
 type HTTPD struct {
@@ -26,11 +27,11 @@ func (d *HTTPD) httpF(h string, p int) string {
 	return fmt.Sprintf("http://%s:%d", h, p)
 }
 
-func (d *HTTPD) log(msg string)  {
+func (d *HTTPD) log(msg string) {
 	log.Printf("[Elasticsearch HTTP DRIVER]: %s", msg)
 }
 
-func (d *HTTPD) logFatal(err error)  {
+func (d *HTTPD) logFatal(err error) {
 	log.Fatalf("[Elasticsearch HTTP DRIVER]: %s", err.Error())
 }
 

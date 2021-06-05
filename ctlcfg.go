@@ -13,16 +13,15 @@ type conf struct {
 	EsPort     int
 	EsIndex    string
 	EsBlkSz    int
-	esURL      string
 
-	ChHost          string
-	ChUser          string
-	ChPass          string
-	ChPort          int
-	ChDB            string
-	ChOrderField    string
-	ChTable         string
-	ChStepSz        int
+	ChHost       string
+	ChUser       string
+	ChPass       string
+	ChPort       int
+	ChDB         string
+	ChOrderField string
+	ChTable      string
+	ChStepSz     int
 }
 
 func (c *conf) parse() {
@@ -58,4 +57,3 @@ func (c *conf) getEsHTTPD() (*es.HTTPD, error) {
 
 	return d, nil
 }
-

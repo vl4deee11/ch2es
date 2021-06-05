@@ -32,11 +32,12 @@ func main() {
 
 	ch := make(chan map[string]interface{})
 	defer close(ch)
-	
+
 	for i := 0; i < cfg.ThreadsNum; i++ {
 		go esHTTPD.BulkDumper(ch, cfg.EsIndex, cfg.EsBlkSz)
 	}
 
+	var exReason error = nil
 	for offset < cfg.MaxOffset {
 		data, err := chHTTPD.Get(fmt.Sprintf(
 			"select * from %s.%s order by %s limit %d offset %d format JSON",
@@ -47,7 +48,8 @@ func main() {
 			offset,
 		))
 		if err != nil {
-			log.Fatal(err)
+			exReason = err
+			break
 		}
 		if len(data) == 0 {
 			break
@@ -57,10 +59,14 @@ func main() {
 			ch <- data[i]
 		}
 		offset += cfg.ChStepSz
-		if err := ioutil.WriteFile("stats", []byte(fmt.Sprintf("%d", offset)), 0644); err != nil {
-			log.Fatal(err)
+		if err := ioutil.WriteFile("stats", []byte(fmt.Sprintf("%d", offset)), 0600); err != nil {
+			exReason = err
+			break
 		}
 		log.Println("current offset =", offset)
+	}
+	if exReason != nil {
+		log.Print(exReason)
 	}
 	log.Println("successfully transferred")
 }
