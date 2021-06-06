@@ -45,14 +45,16 @@ func (c *conf) parse() {
 	flag.Parse()
 }
 
-func (c *conf) getChTrManager() (*ch.TrManager, error) {
-	m := new(ch.TrManager)
-	m.Init(c.ChConf)
+func (c *conf) getReader() (*ch.Reader, error) {
+	m := new(ch.Reader)
+	if err := m.Init(c.ChConf); err != nil {
+		return nil, err
+	}
 	return m, nil
 }
 
-func (c *conf) getEsTrManager() (*es.TrManager, error) {
-	m := new(es.TrManager)
+func (c *conf) getWriter() (*es.Writer, error) {
+	m := new(es.Writer)
 	if err := m.Init(c.EsConf); err != nil {
 		return nil, err
 	}
