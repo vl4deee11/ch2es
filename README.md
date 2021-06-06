@@ -28,7 +28,7 @@ If you want to restart the program with an offset of 0,delete ch2es.stats
         Clickhouse http host (int) (default 8123)
         
   --ch-table string
-        Clickhouse table (str
+        Clickhouse table (str)
         
   --ch-timeout int
         Clickhouse connect timeout in ms (int)
