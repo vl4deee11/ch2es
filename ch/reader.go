@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -50,9 +49,11 @@ func (r *Reader) Init(cfg *Conf) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad status code = %d", resp.StatusCode)
 	}
+
 	return nil
 }
 
@@ -86,23 +87,25 @@ func (r *Reader) get(buff *bytes.Buffer) ([]interface{}, error) {
 		return nil, err
 	}
 
-
 	return bodyM["data"].([]interface{}), nil
 }
 
-func (r *Reader) Read(rCh chan string, wCh chan map[string]interface{}) {
+func (r *Reader) Read(rCh chan string, wCh chan map[string]interface{}, eCh chan error) {
 	buff := bytes.NewBuffer(r.tempQBuff.Bytes())
 	for q := range rCh {
 		_, err := buff.WriteString(q)
 		if err != nil {
-			log.Fatal(err)
+			eCh <- err
+			break
 		}
 
 		data, err := r.get(buff)
 		if err != nil {
-			log.Fatal(err)
+			eCh <- err
+			break
 		}
 		if len(data) == 0 {
+			eCh <- nil
 			break
 		}
 

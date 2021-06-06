@@ -44,7 +44,7 @@ func (w *Writer) Write(ch chan map[string]interface{}) {
 			bulk.Reset()
 		}
 	}
-	log.Println("dump new buffer with length =", bulk.NumberOfActions())
+	log.Println("chan is close, dump new buffer with length =", bulk.NumberOfActions())
 	_, err := bulk.Do(context.Background())
 	if err != nil {
 		log.Fatal(err)

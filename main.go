@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"sync"
 )
 
 func main() {
@@ -23,27 +24,40 @@ func main() {
 	}
 
 	wCh := make(chan map[string]interface{})
-	defer close(wCh)
-
 	rCh := make(chan string)
-	defer close(rCh)
+	eCh := make(chan error)
 
 	for i := 0; i < cfg.ThreadsNum; i++ {
 		go writer.Write(wCh)
 	}
 
 	for i := 0; i < cfg.ThreadsNum; i++ {
-		go reader.Read(rCh, wCh)
+		go reader.Read(rCh, wCh, eCh)
 	}
+
+	var wg *sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		select {
+		case err := <- eCh:
+			close(rCh)
+			close(wCh)
+			if err != nil {
+				log.Fatal(err)
+			}
+			wg.Done()
+		}
+	}()
+
 
 	offset := reader.ReadInitialOffset()
 
 	log.Println("start offset =", offset)
 	for offset < cfg.MaxOffset {
-		rCh <- fmt.Sprintf("offset %d format JSON", offset)
+		rCh <- fmt.Sprintf("kffset %d format JSON", offset)
 		offset += cfg.ChConf.Limit
 		if err := ioutil.WriteFile("stats", []byte(fmt.Sprintf("%d", offset)), 0600); err != nil {
-			log.Fatal(err)
+			eCh <- err
 		}
 		log.Println("current offset =", offset)
 	}
