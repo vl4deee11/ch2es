@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -90,7 +92,17 @@ func (r *Reader) get(buff *bytes.Buffer) ([]interface{}, error) {
 	return bodyM["data"].([]interface{}), nil
 }
 
-func (r *Reader) Read(rCh chan string, wCh chan map[string]interface{}, eCh chan error) {
+func (r *Reader) Read(
+	rCh chan string,
+	wCh chan map[string]interface{},
+	eCh chan error,
+	wg *sync.WaitGroup,
+) {
+	log.Println("start new clickhouse reader")
+	defer func() {
+		wg.Done()
+		log.Println("reader is stop")
+	}()
 	buff := bytes.NewBuffer(r.tempQBuff.Bytes())
 	for q := range rCh {
 		_, err := buff.WriteString(q)

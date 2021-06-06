@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/olivere/elastic/v7"
 )
@@ -31,15 +32,21 @@ func (w *Writer) httpF(h string, p int) string {
 	return fmt.Sprintf("http://%s:%d", h, p)
 }
 
-func (w *Writer) Write(ch chan map[string]interface{}) {
+func (w *Writer) Write(ch chan map[string]interface{}, eCh chan error, wg *sync.WaitGroup) {
 	log.Println("start new elasticsearch writer")
+	defer func() {
+		wg.Done()
+		log.Println("writer is stop")
+	}()
+
 	bulk := w.cli.Bulk()
 	for d := range ch {
 		bulk = bulk.Add(elastic.NewBulkIndexRequest().Index(w.index).Doc(d))
 		if bulk.NumberOfActions() >= w.blksz {
 			log.Println("dump new buffer with length =", bulk.NumberOfActions())
 			if _, err := bulk.Do(context.Background()); err != nil {
-				log.Fatal(err)
+				eCh <- err
+				break
 			}
 			bulk.Reset()
 		}
@@ -47,7 +54,6 @@ func (w *Writer) Write(ch chan map[string]interface{}) {
 	log.Println("chan is close, dump new buffer with length =", bulk.NumberOfActions())
 	_, err := bulk.Do(context.Background())
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
-	bulk.Reset()
 }

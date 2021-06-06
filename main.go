@@ -16,7 +16,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("ch2es start")
+	log.Println("=========== START ===========")
 
 	writer, err := cfg.getWriter()
 	if err != nil {
@@ -25,41 +25,65 @@ func main() {
 
 	wCh := make(chan map[string]interface{})
 	rCh := make(chan string)
-	eCh := make(chan error)
 
+	//nolint:gomnd // 2 use for non blocking write for writer and reader
+	eCh := make(chan error, 2*cfg.ThreadsNum)
+
+	var wwg sync.WaitGroup
 	for i := 0; i < cfg.ThreadsNum; i++ {
-		go writer.Write(wCh)
+		wwg.Add(1)
+		go writer.Write(wCh, eCh, &wwg)
 	}
 
+	var rwg sync.WaitGroup
 	for i := 0; i < cfg.ThreadsNum; i++ {
-		go reader.Read(rCh, wCh, eCh)
+		rwg.Add(1)
+		go reader.Read(rCh, wCh, eCh, &rwg)
 	}
 
-	var wg *sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		select {
-		case err := <- eCh:
-			close(rCh)
-			close(wCh)
-			if err != nil {
-				log.Fatal(err)
-			}
-			wg.Done()
-		}
+	defer func() {
+		end(&rwg, &wwg, wCh, rCh, eCh)
 	}()
-
 
 	offset := reader.ReadInitialOffset()
 
 	log.Println("start offset =", offset)
-	for offset < cfg.MaxOffset {
-		rCh <- fmt.Sprintf("kffset %d format JSON", offset)
-		offset += cfg.ChConf.Limit
-		if err := ioutil.WriteFile("stats", []byte(fmt.Sprintf("%d", offset)), 0600); err != nil {
-			eCh <- err
-		}
-		log.Println("current offset =", offset)
+	if offset >= cfg.MaxOffset {
+		log.Println("incorrect config offset >= maxOffset, check stats file")
+		return
 	}
-	log.Println("successfully transferred")
+
+	for {
+		select {
+		case err := <-eCh:
+			log.Println(err)
+			return
+		default:
+			rCh <- fmt.Sprintf("offset %d format JSON", offset)
+			offset += cfg.ChConf.Limit
+			if err := ioutil.WriteFile("stats", []byte(fmt.Sprintf("%d", offset)), 0600); err != nil {
+				log.Println(err)
+				return
+			}
+			log.Println("current offset =", offset)
+			if offset >= cfg.MaxOffset {
+				return
+			}
+		}
+	}
+}
+
+func end(
+	rwg *sync.WaitGroup,
+	wwg *sync.WaitGroup,
+	wCh chan map[string]interface{},
+	rCh chan string,
+	eCh chan error,
+) {
+	close(rCh)
+	rwg.Wait()
+	close(wCh)
+	wwg.Wait()
+	close(eCh)
+	log.Println("=========== END ===========")
 }
