@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strconv"
 	"sync"
 )
 
@@ -45,7 +46,12 @@ func main() {
 		end(&rwg, &wwg, wCh, rCh, eCh)
 	}()
 
-	offset := reader.ReadInitialOffset()
+	offset := 0
+	f, _ := ioutil.ReadFile("ch2es.stats")
+	n, err := strconv.Atoi(string(f))
+	if err == nil {
+		offset = n
+	}
 
 	log.Println("start offset =", offset)
 	if offset >= cfg.MaxOffset {
@@ -61,7 +67,7 @@ func main() {
 		default:
 			rCh <- fmt.Sprintf("offset %d format JSON", offset)
 			offset += cfg.ChConf.Limit
-			if err := ioutil.WriteFile("stats", []byte(fmt.Sprintf("%d", offset)), 0600); err != nil {
+			if err := ioutil.WriteFile("ch2es.stats", []byte(fmt.Sprintf("%d", offset)), 0600); err != nil {
 				log.Println(err)
 				return
 			}

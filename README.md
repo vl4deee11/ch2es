@@ -1,7 +1,9 @@
 # ch2es
-Data transfer from clickhouse to elasticsearch
+Data transfer from clickhouse to elasticsearch.
 
-ch2es client params
+Write offset for every step into ch2es.stats file. If you want to restart program with offset 0,delete ch2es.stats
+
+# client params
 ```shell
   --ch-cond string
         Clickhouse where condition (str) (default "1")
@@ -49,3 +51,4 @@ ch2es client params
         Threads number for parallel bulk inserts (int)
 
 ```
+

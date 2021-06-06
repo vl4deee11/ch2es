@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -126,13 +125,4 @@ func (r *Reader) Read(
 		}
 		buff.Truncate(r.tempQBuffLen)
 	}
-}
-
-func (r *Reader) ReadInitialOffset() int {
-	f, _ := ioutil.ReadFile("stats")
-	n, err := strconv.Atoi(string(f))
-	if err == nil {
-		return n
-	}
-	return 0
 }
