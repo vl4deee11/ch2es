@@ -1,7 +1,8 @@
 # ch2es
 Data transfer from clickhouse to elasticsearch.
 
-Write offset for every step into ch2es.stats file. If you want to restart program with offset 0,delete ch2es.stats
+Ch2Es creates a ch2es.stats file to record the offset for each step. 
+If you want to restart the program with an offset of 0,delete ch2es.stats
 
 # client params
 ```shell
