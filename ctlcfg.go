@@ -32,7 +32,7 @@ func (c *conf) parse() {
 	flag.StringVar(&c.ChConf.DB, "ch-db", "default", "Clickhouse db name (str)")
 	flag.StringVar(&c.ChConf.Table, "ch-table", "", "Clickhouse table (str)")
 	flag.IntVar(&c.ChConf.Limit, "ch-limit", 0, "Clickhouse limit (int)")
-	flag.IntVar(&c.ChConf.ConnTimeout, "ch-timeout", 0, "Clickhouse connect timeout (int)")
+	flag.IntVar(&c.ChConf.ConnTimeout, "ch-timeout", 0, "Clickhouse connect timeout in seconds (int)")
 
 	flag.StringVar(&c.EsConf.Host, "es-host", "0.0.0.0", "Elastic search host (str)")
 	flag.IntVar(&c.EsConf.Port, "es-port", 9200, "Elastic search port (int)")
