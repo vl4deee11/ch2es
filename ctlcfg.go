@@ -2,37 +2,35 @@ package main
 
 import (
 	"ch2es/ch"
+	"ch2es/common"
 	"ch2es/es"
 	"flag"
 )
 
 type conf struct {
-	ThreadsNum int
-	MaxOffset  int
+	ThreadsNum int `desc:"threads number"`
+	MaxOffset  int `desc:"max offset"`
 	EsConf     *es.Conf
 
 	ChConf *ch.Conf
 }
 
 func (c *conf) parse() {
-	c.ChConf = new(ch.Conf)
-	c.EsConf = new(es.Conf)
+	c.ChConf = &ch.Conf{HTTPConf: new(common.HTTPConf)}
+	c.EsConf = &es.Conf{HTTPConf: new(common.HTTPConf)}
 
 	flag.StringVar(&c.ChConf.Host, "ch-host", "0.0.0.0", "Clickhouse host (str)")
 	flag.IntVar(&c.ChConf.Port, "ch-port", 8123, "Clickhouse http host (int)")
 	flag.StringVar(&c.ChConf.OrderField, "ch-order", "", "Clickhouse order field (str)")
-	flag.StringVar(
-		&c.ChConf.Fields,
-		"ch-fields",
-		"*",
-		"Clickhouse clickhouse fields for transfer ex: f_1,f_2,f_3 (str)",
-	)
-
+	flag.StringVar(&c.ChConf.Fields, "ch-fields", "*", "Clickhouse clickhouse fields for transfer ex: f_1,f_2,f_3 (str)")
 	flag.StringVar(&c.ChConf.Condition, "ch-cond", "1", "Clickhouse clickhouse where condition (str)")
 	flag.StringVar(&c.ChConf.DB, "ch-db", "default", "Clickhouse db name (str)")
 	flag.StringVar(&c.ChConf.Table, "ch-table", "", "Clickhouse table (str)")
+	flag.StringVar(&c.ChConf.URLParams.User, "ch-user", "", "Clickhouse db username (str)")
+	flag.StringVar(&c.ChConf.URLParams.Pass, "ch-pass", "", "Clickhouse db password (str)")
 	flag.IntVar(&c.ChConf.Limit, "ch-limit", 0, "Clickhouse limit (int)")
-	flag.IntVar(&c.ChConf.ConnTimeout, "ch-timeout", 0, "Clickhouse connect timeout (int)")
+	flag.IntVar(&c.ChConf.ConnTimeoutSec, "ch-conn-timeout", 20, "Clickhouse connect timeout in sec (int)")
+	flag.IntVar(&c.ChConf.QueryTimeoutSec, "ch-query-timeout", 60, "Clickhouse query timeout in sec (int)")
 
 	flag.StringVar(&c.EsConf.Host, "es-host", "0.0.0.0", "Elastic search host (str)")
 	flag.IntVar(&c.EsConf.Port, "es-port", 9200, "Elastic search port (int)")
@@ -43,6 +41,13 @@ func (c *conf) parse() {
 
 	flag.IntVar(&c.ThreadsNum, "tn", 0, "Threads number for parallel bulk inserts (int)")
 	flag.Parse()
+	c.print()
+}
+
+func (c *conf) print() {
+	c.ChConf.Print()
+	c.EsConf.Print()
+	common.PrintFromDesc("[COMMON CONFIG]", *c)
 }
 
 func (c *conf) getReader() (*ch.Reader, error) {

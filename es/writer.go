@@ -44,9 +44,13 @@ func (w *Writer) Write(ch chan map[string]interface{}, eCh chan error, wg *sync.
 		bulk = bulk.Add(elastic.NewBulkIndexRequest().Index(w.index).Doc(d))
 		if bulk.NumberOfActions() >= w.blksz {
 			log.Println("dump new buffer with length =", bulk.NumberOfActions())
-			if _, err := bulk.Do(context.Background()); err != nil {
+			r, err := bulk.Do(context.Background())
+			if err != nil {
 				eCh <- err
 				break
+			}
+			if r.Errors {
+				eCh <- fmt.Errorf("error happenned in bulk request")
 			}
 			bulk.Reset()
 		}
