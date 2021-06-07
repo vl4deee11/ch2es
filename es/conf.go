@@ -6,10 +6,11 @@ import (
 
 type Conf struct {
 	*common.HTTPConf
-	User  string `desc:"user"`
-	Pass  string `desc:"password"`
-	Index string `desc:"index"`
-	BlkSz int    `desc:"bulk size"`
+	User            string `desc:"user"`
+	Pass            string `desc:"password"`
+	Index           string `desc:"index"`
+	BlkSz           int    `desc:"bulk size"`
+	QueryTimeoutSec int    `desc:"query timeout sec"`
 }
 
 func (c *Conf) Print() {
