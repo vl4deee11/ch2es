@@ -1,10 +1,19 @@
 package es
 
+import (
+	"ch2es/common"
+)
+
 type Conf struct {
-	Host  string
-	User  string
-	Pass  string
-	Port  int
-	Index string
-	BlkSz int
+	*common.HTTPConf
+	User            string `desc:"user"`
+	Pass            string `desc:"password"`
+	Index           string `desc:"index"`
+	BlkSz           int    `desc:"bulk size"`
+	QueryTimeoutSec int    `desc:"query timeout sec"`
+}
+
+func (c *Conf) Print() {
+	common.PrintFromDesc("[ELASTICSEARCH CONFIG]:", *c.HTTPConf)
+	common.PrintFromDesc("[ELASTICSEARCH CONFIG]:", *c)
 }
