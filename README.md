@@ -31,7 +31,7 @@ If you want to restart the program with an offset of 0,delete ch2es.stats
         Clickhouse table (str)
         
   --ch-timeout int
-        Clickhouse connect timeout in ms (int)
+        Clickhouse connect timeout in seconds (int)
         
   --es-blksz int
         Elastic search bulk insert size (int)
