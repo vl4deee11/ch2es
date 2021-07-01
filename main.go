@@ -1,31 +1,32 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
+	"bytes"
+	"ch2es/ch"
+	"ch2es/es"
 	"log"
-	"strconv"
 	"sync"
+	"time"
 )
 
 func main() {
 	cfg := new(conf)
 	cfg.parse()
 
-	reader, err := cfg.getReader()
+	log.Println("=========== START ===========")
+
+	reader, cursor, err := ch.NewReader(cfg.ChConf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("=========== START ===========")
-
-	writer, err := cfg.getWriter()
+	writer, err := es.NewWriter(cfg.EsConf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	wCh := make(chan map[string]interface{})
-	rCh := make(chan string)
+	rCh := make(chan *bytes.Buffer)
 
 	//nolint:gomnd // 2 use for non blocking write for writer and reader
 	eCh := make(chan error, 2*cfg.ThreadsNum)
@@ -42,48 +43,32 @@ func main() {
 		go reader.Read(rCh, wCh, eCh, &rwg)
 	}
 
+	start := time.Now()
 	defer func() {
 		end(&rwg, &wwg, wCh, rCh, eCh)
+		log.Printf("Elapsed: [%s]", time.Since(start))
 	}()
-
-	offset := 0
-	f, _ := ioutil.ReadFile("ch2es.stats")
-	n, err := strconv.Atoi(string(f))
-	if err == nil {
-		offset = n
-	}
-
-	log.Println("start offset =", offset)
-	if offset >= cfg.MaxOffset {
-		log.Println("incorrect config offset >= maxOffset, check stats file")
-		return
-	}
 
 	for {
 		select {
 		case err := <-eCh:
-			log.Println(err)
+			log.Println("FATAL ERROR !!!", err)
 			return
 		default:
-			rCh <- fmt.Sprintf("offset %d format JSON", offset)
-			offset += cfg.ChConf.Limit
-			if err := ioutil.WriteFile("ch2es.stats", []byte(fmt.Sprintf("%d", offset)), 0600); err != nil {
-				log.Println(err)
+			b := cursor.Next()
+			if b == nil {
+				log.Println("stop, cursor is end")
 				return
 			}
-			log.Println("current offset =", offset)
-			if offset >= cfg.MaxOffset {
-				return
-			}
+			rCh <- b
 		}
 	}
 }
 
 func end(
-	rwg *sync.WaitGroup,
-	wwg *sync.WaitGroup,
+	rwg, wwg *sync.WaitGroup,
 	wCh chan map[string]interface{},
-	rCh chan string,
+	rCh chan *bytes.Buffer,
 	eCh chan error,
 ) {
 	close(rCh)

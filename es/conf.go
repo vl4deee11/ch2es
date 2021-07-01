@@ -10,6 +10,7 @@ type Conf struct {
 	Pass            string `desc:"password"`
 	Index           string `desc:"index"`
 	BlkSz           int    `desc:"bulk size"`
+	IDField         string `desc:"id field"`
 	QueryTimeoutSec int    `desc:"query timeout sec"`
 }
 

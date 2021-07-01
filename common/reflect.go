@@ -7,7 +7,7 @@ import (
 
 func PrintFromDesc(pref string, s interface{}) {
 	v := reflect.ValueOf(s)
-	t := v.Type()
+	t := reflect.TypeOf(s)
 	for i := 0; i < v.NumField(); i++ {
 		p, ok := t.Field(i).Tag.Lookup("desc")
 		if !ok {
@@ -17,9 +17,11 @@ func PrintFromDesc(pref string, s interface{}) {
 		if field == "" {
 			continue
 		}
-		if field == "" {
+
+		if t.Field(i).Type.Kind() == reflect.Ptr {
 			continue
 		}
+
 		log.Println(pref, p, "=", field)
 	}
 }
