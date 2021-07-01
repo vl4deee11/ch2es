@@ -13,11 +13,13 @@ import (
 type Writer struct {
 	cli      *elastic.Client
 	index    string
+	idField  string
 	blksz    int
 	qTimeout time.Duration
 }
 
-func (w *Writer) Init(cfg *Conf) error {
+func NewWriter(cfg *Conf) (*Writer, error) {
+	w := new(Writer)
 	cfg.BuildHTTP()
 
 	cliEs, err := elastic.NewClient(
@@ -25,13 +27,14 @@ func (w *Writer) Init(cfg *Conf) error {
 		elastic.SetBasicAuth(cfg.User, cfg.Pass),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	w.qTimeout = time.Duration(cfg.QueryTimeoutSec) * time.Second
 	w.cli = cliEs
 	w.index = cfg.Index
 	w.blksz = cfg.BlkSz
-	return nil
+	w.idField = cfg.IDField
+	return w, err
 }
 
 func (w *Writer) Write(ch chan map[string]interface{}, eCh chan error, wg *sync.WaitGroup) {
@@ -43,7 +46,11 @@ func (w *Writer) Write(ch chan map[string]interface{}, eCh chan error, wg *sync.
 
 	bulk := w.cli.Bulk()
 	for d := range ch {
-		bulk = bulk.Add(elastic.NewBulkIndexRequest().Index(w.index).Doc(d))
+		bReq := elastic.NewBulkIndexRequest()
+		if w.idField != "" {
+			bReq = bReq.OpType("index").Id(fmt.Sprint(d[w.idField]))
+		}
+		bulk = bulk.Add(bReq.Index(w.index).Doc(d))
 		if bulk.NumberOfActions() >= w.blksz {
 			log.Println("dump new buffer with length =", bulk.NumberOfActions())
 			ctx, cancel := context.WithTimeout(context.Background(), w.qTimeout)
@@ -64,9 +71,12 @@ func (w *Writer) Write(ch chan map[string]interface{}, eCh chan error, wg *sync.
 	}
 	log.Println("chan is close, dump new buffer with length =", bulk.NumberOfActions())
 	ctx, cancel := context.WithTimeout(context.Background(), w.qTimeout)
-	_, err := bulk.Do(ctx)
+	r, err := bulk.Do(ctx)
 	if err != nil {
 		log.Println(err)
+	}
+	if r != nil && r.Errors {
+		log.Println("error happened in bulk request")
 	}
 	cancel()
 }
