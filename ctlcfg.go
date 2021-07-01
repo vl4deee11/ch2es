@@ -51,8 +51,8 @@ func (c *conf) parse() {
 	flag.IntVar(&c.ChConf.OFC.MaxOffset, "ch-ofc-max-offset", 0, "[Clickhouse offset cursor] max offset in clickhouse table. Use only if --ch-cursor=0 (by default)")
 
 	// CLICKHOUSE json file cursor
-	flag.StringVar(&c.ChConf.JFC.File, "ch-jfc-file", "", "[Clickhouse json file cursor] path to file with data formatted JSONEachRow")
-	flag.IntVar(&c.ChConf.JFC.Line, "ch-jfc-line", 0, "[Clickhouse json file cursor] start line in file with data formatted JSONEachRow")
+	flag.StringVar(&c.ChConf.JFC.File, "ch-jfc-file", "", "[Clickhouse json file cursor] path to file with data formatted JSONEachRow. Use only if --ch-cursor=2")
+	flag.IntVar(&c.ChConf.JFC.Line, "ch-jfc-line", 0, "[Clickhouse json file cursor] start line in file with data formatted JSONEachRow. Use only if --ch-cursor=2")
 
 	// ELASTIC
 	flag.StringVar(&c.EsConf.Protocol, "es-protocol", "http", "[Elasticsearch] protocol")
