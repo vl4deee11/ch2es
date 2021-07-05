@@ -29,7 +29,7 @@ func NewReader(cfg *Conf) (*Reader, Cursor, error) {
 
 	switch r.cursorT {
 	case fileCursor:
-		cur, err := NewJSONFileCursor(cfg)
+		cur, err := NewJSONFileCursor(cfg.JFC)
 		return r, cur, err
 	case offsetCursor, timeStampCursor:
 		cfg.BuildHTTP()
