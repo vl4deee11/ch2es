@@ -62,6 +62,6 @@ func (c *ioReaderTemp) Next() *bytes.Buffer {
 
 	buff.Write(b)
 
-	log.Println("current line in file =", c.count)
+	log.Println("current line =", c.count)
 	return buff
 }
