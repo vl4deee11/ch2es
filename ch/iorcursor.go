@@ -37,6 +37,7 @@ func newIOReaderTempCursor(startLine int, source io.ReadCloser) (Cursor, error) 
 			return nil, err
 		}
 	}
+
 	return c, nil
 }
 
@@ -50,6 +51,7 @@ func (c *ioReaderTemp) Next() *bytes.Buffer {
 		log.Println("too many tokens")
 		return nil
 	}
+
 	if err != nil {
 		log.Println(err)
 		if err := c.source.Close(); err != nil {

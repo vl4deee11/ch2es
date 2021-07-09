@@ -7,7 +7,8 @@ type cursorT int
 const (
 	offsetCursor cursorT = iota
 	timeStampCursor
-	fileCursor
+	jsonFileCursor
+	stdinCursor
 )
 
 type Cursor interface {

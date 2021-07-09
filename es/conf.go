@@ -1,11 +1,11 @@
 package es
 
 import (
-	"ch2es/common"
+	"ch2es/util"
 )
 
 type Conf struct {
-	*common.HTTPConf
+	*util.HTTPConf
 	User            string `desc:"user"`
 	Pass            string `desc:"password"`
 	Index           string `desc:"index"`
@@ -15,6 +15,6 @@ type Conf struct {
 }
 
 func (c *Conf) Print() {
-	common.PrintFromDesc("[ELASTICSEARCH CONFIG]:", *c.HTTPConf)
-	common.PrintFromDesc("[ELASTICSEARCH CONFIG]:", *c)
+	util.PrintFromDesc("[ELASTICSEARCH CONFIG]:", *c.HTTPConf)
+	util.PrintFromDesc("[ELASTICSEARCH CONFIG]:", *c)
 }

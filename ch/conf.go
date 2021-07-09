@@ -1,11 +1,11 @@
 package ch
 
 import (
-	"ch2es/common"
+	"ch2es/util"
 )
 
 type Conf struct {
-	*common.HTTPConf
+	*util.HTTPConf
 
 	URLParams struct {
 		User string `param:"user" desc:"http param user"`
@@ -22,27 +22,32 @@ type Conf struct {
 	DotReplacer     string `desc:"change dots symbol"`
 
 	// offset cursor
-	OFC *OffsetCursorConf `desc:"Offset cursor config"`
+	OFC *OffsetCursorConf `desc:"offset cursor config"`
 
 	// timestamp cursor
-	TSC *TSCursorConf `desc:"Timestamp cursor config"`
+	TSC *TSCursorConf `desc:"timestamp cursor config"`
 
 	// json file cursor
-	JFC *JSONFileCursorConf `desc:"JSON file cursor config"`
+	JFC *JSONFileCursorConf `desc:"json file cursor config"`
+
+	// stdin cursor
+	StdinC *StdInCursorConf `desc:"stdin cursor config"`
 }
 
 func (c *Conf) Print() {
-	common.PrintFromDesc("[CLICKHOUSE HTTP CONFIG]:", *c.HTTPConf)
+	util.PrintFromDesc("[CLICKHOUSE HTTP CONFIG]:", *c.HTTPConf)
 
 	switch cursorT(c.CursorT) {
 	case offsetCursor:
-		common.PrintFromDesc("[CLICKHOUSE OFFSET CURSOR CONFIG]:", *c.OFC)
+		util.PrintFromDesc("[CLICKHOUSE OFFSET CURSOR CONFIG]:", *c.OFC)
 	case timeStampCursor:
-		common.PrintFromDesc("[CLICKHOUSE TIMESTAMP CURSOR CONFIG]:", *c.TSC)
-	case fileCursor:
-		common.PrintFromDesc("[CLICKHOUSE FILE CURSOR CONFIG]:", *c.JFC)
+		util.PrintFromDesc("[CLICKHOUSE TIMESTAMP CURSOR CONFIG]:", *c.TSC)
+	case jsonFileCursor:
+		util.PrintFromDesc("[CLICKHOUSE JSON FILE CURSOR CONFIG]:", *c.JFC)
+	case stdinCursor:
+		util.PrintFromDesc("[CLICKHOUSE STDIN CURSOR CONFIG]:", *c.StdinC)
 	}
 
-	common.PrintFromDesc("[CLICKHOUSE CONFIG]:", *c)
-	common.PrintFromDesc("[CLICKHOUSE CONFIG]:", c.URLParams)
+	util.PrintFromDesc("[CLICKHOUSE CONFIG]:", *c)
+	util.PrintFromDesc("[CLICKHOUSE CONFIG]:", c.URLParams)
 }

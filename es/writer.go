@@ -34,7 +34,7 @@ func NewWriter(cfg *Conf) (*Writer, error) {
 	w.index = cfg.Index
 	w.blksz = cfg.BlkSz
 	w.idField = cfg.IDField
-	return w, err
+	return w, nil
 }
 
 func (w *Writer) Write(ch chan map[string]interface{}, eCh chan error, wg *sync.WaitGroup) {
