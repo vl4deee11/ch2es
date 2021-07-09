@@ -2,8 +2,8 @@ package main
 
 import (
 	"ch2es/ch"
-	"ch2es/common"
 	"ch2es/es"
+	"ch2es/util"
 	"flag"
 )
 
@@ -16,12 +16,13 @@ type conf struct {
 
 func (c *conf) parse() {
 	c.ChConf = &ch.Conf{
-		HTTPConf: new(common.HTTPConf),
+		HTTPConf: new(util.HTTPConf),
 		TSC:      new(ch.TSCursorConf),
 		OFC:      new(ch.OffsetCursorConf),
 		JFC:      new(ch.JSONFileCursorConf),
+		StdinC:   new(ch.StdInCursorConf),
 	}
-	c.EsConf = &es.Conf{HTTPConf: new(common.HTTPConf)}
+	c.EsConf = &es.Conf{HTTPConf: new(util.HTTPConf)}
 
 	// CLICKHOUSE
 	flag.StringVar(&c.ChConf.Protocol, "ch-protocol", "http", "[Clickhouse] protocol")
@@ -36,7 +37,7 @@ func (c *conf) parse() {
 	flag.StringVar(&c.ChConf.URLParams.Pass, "ch-pass", "", "[Clickhouse] db password")
 	flag.IntVar(&c.ChConf.ConnTimeoutSec, "ch-conn-timeout", 20, "[Clickhouse] connect timeout in sec")
 	flag.IntVar(&c.ChConf.QueryTimeoutSec, "ch-query-timeout", 60, "[Clickhouse] query timeout in sec")
-	flag.IntVar(&c.ChConf.CursorT, "ch-cursor", 0, "[Clickhouse] cursor type. Available 0 (offset cursor), 1 (timestamp cursor), 2 (json file cursor)")
+	flag.IntVar(&c.ChConf.CursorT, "ch-cursor", 0, "[Clickhouse] cursor type. Available 0 (offset cursor), 1 (timestamp cursor), 2 (json file cursor), 3 (stdin cursor)")
 
 	// CLICKHOUSE timestamp cursor
 	flag.IntVar(&c.ChConf.TSC.StepSec, "ch-tsc-step", 0, "[Clickhouse timestamp cursor] step in sec. Use only if --ch-cursor=1")
@@ -53,6 +54,9 @@ func (c *conf) parse() {
 	// CLICKHOUSE json file cursor
 	flag.StringVar(&c.ChConf.JFC.File, "ch-jfc-file", "", "[Clickhouse json file cursor] path to file with data formatted JSONEachRow. Use only if --ch-cursor=2")
 	flag.IntVar(&c.ChConf.JFC.Line, "ch-jfc-line", 0, "[Clickhouse json file cursor] start line in file with data formatted JSONEachRow. Use only if --ch-cursor=2")
+
+	// CLICKHOUSE stdin cursor
+	flag.IntVar(&c.ChConf.StdinC.Line, "ch-stdinc-line", 0, "[Clickhouse stdin cursor] start line in stdin with data formatted JSONEachRow. Use only if --ch-cursor=3")
 
 	// ELASTIC
 	flag.StringVar(&c.EsConf.Protocol, "es-protocol", "http", "[Elasticsearch] protocol")
@@ -74,5 +78,5 @@ func (c *conf) parse() {
 func (c *conf) print() {
 	c.ChConf.Print()
 	c.EsConf.Print()
-	common.PrintFromDesc("[COMMON CONFIG]", *c)
+	util.PrintFromDesc("[COMMON CONFIG]", *c)
 }

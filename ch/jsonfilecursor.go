@@ -14,5 +14,5 @@ func NewJSONFileCursor(cfg *JSONFileCursorConf) (Cursor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return  newIOReaderTempCursor(cfg.Line, file)
+	return newIOReaderTempCursor(cfg.Line, file)
 }

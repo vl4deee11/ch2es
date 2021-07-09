@@ -28,8 +28,11 @@ func NewReader(cfg *Conf) (*Reader, Cursor, error) {
 	r.cursorT = cursorT(cfg.CursorT)
 
 	switch r.cursorT {
-	case fileCursor:
+	case jsonFileCursor:
 		cur, err := NewJSONFileCursor(cfg.JFC)
+		return r, cur, err
+	case stdinCursor:
+		cur, err := NewStdInCursor(cfg.StdinC)
 		return r, cur, err
 	case offsetCursor, timeStampCursor:
 		cfg.BuildHTTP()
@@ -113,7 +116,7 @@ func (r *Reader) Read(
 ) {
 	log.Println("start new clickhouse reader")
 	switch r.cursorT {
-	case fileCursor:
+	case jsonFileCursor, stdinCursor:
 		r.readFile(ch, wCh, eCh, wg)
 	case offsetCursor, timeStampCursor:
 		r.readHTTP(ch, wCh, eCh, wg)

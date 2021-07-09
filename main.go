@@ -17,12 +17,12 @@ func main() {
 
 	reader, cursor, err := ch.NewReader(cfg.ChConf)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("FATAL ERROR = ", err)
 	}
 
 	writer, err := es.NewWriter(cfg.EsConf)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("FATAL ERROR = ", err)
 	}
 
 	wCh := make(chan map[string]interface{})
@@ -52,7 +52,7 @@ func main() {
 	for {
 		select {
 		case err := <-eCh:
-			log.Println("FATAL ERROR !!!", err)
+			log.Println("FATAL ERROR = ", err)
 			return
 		default:
 			b := cursor.Next()
