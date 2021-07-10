@@ -97,16 +97,24 @@ In elasticsearch by default use _id filed. You can rewrite this field with `--es
 
  1. transfer from file
  
-    `ch2es --es-blksz 1000 --es-host host --es-port 9201 --es-idx idx --tn 16 --ch-cursor 2 --ch-jfc-file ./q.json --ch-dot-replacer _`
+    ```bash
+    ./ch2es.bin --es-blksz 1000 --es-host host --es-port 9201 --es-idx idx --tn 16 --ch-cursor 2 --ch-jfc-file ./q.json --ch-dot-replacer _
+    ```
     
  2. transfer with timestamp cursor
  
-    `ch2es --ch-fields user_id,author_id,my_timestamp --ch-pass xyz --ch-db my_db --ch-host host --ch-table my_table --ch-query-timeout 60 --ch-conn-timeout 10 --es-blksz 5000 --es-host host --es-idx my_index --tn 4 --ch-cursor 1 --ch-tsc-step 10 --ch-tsc-min 1622505600 --ch-tsc-max 1624924800 --ch-tsc-field my_timestamp --ch-dot-replacer _`
+    ```bash
+    ./ch2es.bin --ch-fields user_id,author_id,my_timestamp --ch-pass xyz --ch-db my_db --ch-host host --ch-table my_table --ch-query-timeout 60 --ch-conn-timeout 10 --es-blksz 5000 --es-host host --es-idx my_index --tn 4 --ch-cursor 1 --ch-tsc-step 10 --ch-tsc-min 1622505600 --ch-tsc-max 1624924800 --ch-tsc-field my_timestamp --ch-dot-replacer _
+    ```
      
  3. transfer with offset/limit cursor
  
-    `ch2es --ch-fields user_id,author_id,my_timestamp --ch-pass xyz --ch-db my_db --ch-host host --ch-table my_table --ch-query-timeout 60 --ch-conn-timeout 10 --es-blksz 5000 --es-host host --es-idx my_index --tn 4 --ch-cursor 1 --ch-ofc-limit 10 --ch-ofc-max-offset 2000000 --ch-ofc-offset 20 --ch-ofc-order user_id --ch-dot-replacer _`
+    ```bash
+    ./ch2es.bin --ch-fields user_id,author_id,my_timestamp --ch-pass xyz --ch-db my_db --ch-host host --ch-table my_table --ch-query-timeout 60 --ch-conn-timeout 10 --es-blksz 5000 --es-host host --es-idx my_index --tn 4 --ch-cursor 1 --ch-ofc-limit 10 --ch-ofc-max-offset 2000000 --ch-ofc-offset 20 --ch-ofc-order user_id --ch-dot-replacer _
+    ```
  
  4. transfer from stdin
 
-    `clickhouse-client -h 0.0.0.0 -q "select * from info limit 1000 format JSONEachRow" | ./ch2es.bin --es-blksz 1000 --es-host 0.0.0.0 --es-port 9200 --es-idx test_idx --tn 1 --ch-cursor 3`
+    ```bash
+    clickhouse-client -h 0.0.0.0 -q "select * from info limit 1000 format JSONEachRow" | ./ch2es.bin --es-blksz 1000 --es-host 0.0.0.0 --es-port 9200 --es-idx test_idx --tn 1 --ch-cursor 3
+    ```
