@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"ch2es/ch"
 	"ch2es/es"
-	"log"
+	"ch2es/log"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -12,17 +13,18 @@ import (
 func main() {
 	cfg := new(conf)
 	cfg.parse()
-
-	log.Println("=========== START ===========")
+	log.Info("=========== START ===========")
 
 	reader, cursor, err := ch.NewReader(cfg.ChConf)
 	if err != nil {
-		log.Fatal("FATAL ERROR = ", err)
+		log.Err(err)
+		return
 	}
 
 	writer, err := es.NewWriter(cfg.EsConf)
 	if err != nil {
-		log.Fatal("FATAL ERROR = ", err)
+		log.Err(err)
+		return
 	}
 
 	wCh := make(chan map[string]interface{})
@@ -46,18 +48,18 @@ func main() {
 	start := time.Now()
 	defer func() {
 		end(&rwg, &wwg, wCh, rCh, eCh)
-		log.Printf("Elapsed: [%s]", time.Since(start))
+		log.Info(fmt.Sprintf("Elapsed: [%s]\n", time.Since(start)))
 	}()
 
 	for {
 		select {
 		case err := <-eCh:
-			log.Println("FATAL ERROR = ", err)
+			log.Err(err)
 			return
 		default:
 			b := cursor.Next()
 			if b == nil {
-				log.Println("stop, cursor is end")
+				log.Info("stop, cursor is end")
 				return
 			}
 			rCh <- b
@@ -76,5 +78,5 @@ func end(
 	close(wCh)
 	wwg.Wait()
 	close(eCh)
-	log.Println("=========== END ===========")
+	log.Info("=========== END ===========")
 }
