@@ -78,8 +78,8 @@ func (c *conf) parse() {
 	flag.StringVar(&c.EsConf.DotReplacer, "es-dot-replacer", "", "[Elasticsearch] Replacer for dots in fields if need")
 
 	// ELASTIC nested converter
-	flag.StringVar(&c.EsConf.NCC.Field, "es-nc-field", "data", "[Elasticsearch nested converter] nested array field name. Use only if --es-conv=1")
-	flag.BoolVar(&c.EsConf.NCC.AddNull, "es-nc-null", false, "[Elasticsearch nested converter] add null values to objects in nested array. Use only if --es-conv=1")
+	flag.StringVar(&c.EsConf.NCC.Field, "es-nc-field", "data", "[Elasticsearch nested converter] nested array field name. Use only if --es-converter=1")
+	flag.BoolVar(&c.EsConf.NCC.AddNull, "es-nc-null", false, "[Elasticsearch nested converter] add null values to objects in nested array. Use only if --es-converter=1")
 
 	// COMMON
 	flag.IntVar(&c.ThreadsNum, "tn", 0, "[Common] threads number for parallel write and read")
