@@ -1,7 +1,8 @@
 package util
 
 import (
-	"log"
+	"ch2es/log"
+	"fmt"
 	"reflect"
 )
 
@@ -22,6 +23,6 @@ func PrintFromDesc(pref string, s interface{}) {
 			continue
 		}
 
-		log.Println(pref, p, "=", field)
+		log.Info(fmt.Sprint(pref, p, "=", field))
 	}
 }

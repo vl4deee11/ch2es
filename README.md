@@ -2,119 +2,103 @@
 
 Data transfer from clickhouse to elasticsearch.
 
-# info
+Clickhouse reader provide 4 types of cursor (set with `--ch-cursor`)
 
-At this stage of the project, all points in the field name are rewritten to the value of the `--ch-dot-replacer` flag,
- if it is set, otherwise the points remain in the fields, which can cause an elasticsearch error. 
-In elasticsearch by default use _id filed. You can rewrite this field with `--es-id-field` flag
+    0. offset
+        transfer data with limit and offset (use for small tables)
+        
+    1. timestamp
+        transfer data with timestamp offset (unix-timestamp <= <--ch-tsc-field> <= unix-timestamp + <--ch-tsc-step>).
+        start at <--ch-tsc-min> end at <--ch-tsc-max>
+        
+    2. json file
+        transfer data from file with clickhouse format JSONEachRow. line by line (use for big tables)
+        
+    3. stdin
+        transfer data from stdin with clickhouse format JSONEachRow. line by line (use for big tables)
+
+Elasticsearch writer provide 2 type of converter (set with `--es-converter`)
+    
+    0. null
+        write data with unchanged clickhouse schema
+        
+    1. nested
+        write data with nested schema
+        
+# elasticsearch additional info
+1. At this stage of the project, all dots in the field name are rewritten to the value of the `--es-dot-replacer` flag, 
+if it is set, otherwise the points remain in the fields, which can cause an elasticsearch error.
+
+2. In elasticsearch by default use _id filed. You can rewrite this field with `--es-id-field` flag.
+
+# the nested schema additional info 
+
+Support [nested fields](https://www.elastic.co/guide/en/elasticsearch/reference/current/nested.html). 
+
+Example:
+
+Get from clickhouse :
+```json
+{
+  "foo": 1,
+  "bar": "string",
+  "baz": [1,2,3,4],
+  "baz2": ["one", "two"]
+}
+```
+Insert to elasticsearch:
+```json
+{
+  "foo": 1,
+  "bar": "string",
+  "<--es-nc-field>" : [
+    {
+      "baz": 1,
+      "baz2": "one"
+    },
+    {
+      "baz": 2,
+      "baz2": "two"
+    },
+    {
+      "baz": 3,
+      "baz2": null // added if --es-nc-null=true
+    },
+    {
+      "baz": 4,
+      "baz2": null // added if --es-nc-null=true
+    },
+  ]
+}
+``` 
+
 
 # client params
-```
-  Usage of ./ch2es:
-  -ch-cond string
-        [Clickhouse] where condition
-  -ch-conn-timeout int
-        [Clickhouse] connect timeout in sec (default 20)
-  -ch-cursor int
-        [Clickhouse] cursor type. Available 0 (offset cursor), 1 (timestamp cursor), 2 (json file cursor), 3 (stdin cursor)
-  -ch-db string
-        [Clickhouse] db name (default "default")
-  -ch-dot-replacer string
-        [Clickhouse] Replacer for dots in fields if need
-  -ch-fields string
-        [Clickhouse] fields for transfer ex: f_1,f_2,f_3 (default "*")
-  -ch-host string
-        [Clickhouse] host (default "0.0.0.0")
-  -ch-pass string
-        [Clickhouse] db password
-  -ch-port int
-        [Clickhouse] http host (default 8123)
-  -ch-protocol string
-        [Clickhouse] protocol (default "http")
-  -ch-query-timeout int
-        [Clickhouse] query timeout in sec (default 60)              
-  -ch-user string
-        [Clickhouse] db username
-  -ch-table string
-        [Clickhouse] table        
-        
-  -ch-jfc-file string
-        [Clickhouse json file cursor] path to file with data formatted JSONEachRow. Use only if --ch-cursor=2
-  -ch-jfc-line int
-        [Clickhouse json file cursor] start line in file with data formatted JSONEachRow. Use only if --ch-cursor=2
-        
-        
-  -ch-ofc-limit int
-        [Clickhouse offset cursor] limit. Use only if --ch-cursor=0 (by default) (default 100)
-  -ch-ofc-max-offset int
-        [Clickhouse offset cursor] max offset in clickhouse table. Use only if --ch-cursor=0 (by default)
-  -ch-ofc-offset int
-        [Clickhouse offset cursor] start offset. Use only if --ch-cursor=0 (by default)
-  -ch-ofc-order string
-        [Clickhouse offset cursor] order field. Use only if --ch-cursor=0 (by default)
 
-
-  -ch-stdinc-line int
-        [Clickhouse stdin cursor] start line in stdin with data formatted JSONEachRow. Use only if --ch-cursor=3
-        
-        
-  -ch-tsc-field string
-        [Clickhouse timestamp cursor] field. Should be datetime type or timestamp. Use only if --ch-cursor=1
-  -ch-tsc-max int
-        [Clickhouse timestamp cursor] end time format unix timestamp. Use only if --ch-cursor=1
-  -ch-tsc-min int
-        [Clickhouse timestamp cursor] start time format unix timestamp. Use only if --ch-cursor=1
-  -ch-tsc-step int
-        [Clickhouse timestamp cursor] step in sec. Use only if --ch-cursor=1
-        
-        
-  -es-blksz int
-        [Elasticsearch] search bulk insert size
-  -es-host string
-        [Elasticsearch] search host (default "0.0.0.0")
-  -es-id-field string
-        [Elasticsearch] id field
-  -es-idx string
-        [Elasticsearch] search index
-  -es-pass string
-        [Elasticsearch] search password
-  -es-port int
-        [Elasticsearch] search port (default 9200)
-  -es-protocol string
-        [Elasticsearch] protocol (default "http")
-  -es-query-timeout int
-        [Elasticsearch] search query timeout in sec (default 60)
-  -es-user string
-        [Elasticsearch] search username
-        
-        
-  -tn int
-        [Common] Threads number for parallel insert and read
-
-```
+Use `-h` for the client params
 
 # examples 
 
- 1. transfer from file
- 
-    ```bash
-    ./ch2es.bin --es-blksz 1000 --es-host host --es-port 9201 --es-idx idx --tn 16 --ch-cursor 2 --ch-jfc-file ./q.json --ch-dot-replacer _
-    ```
-    
- 2. transfer with timestamp cursor
- 
-    ```bash
-    ./ch2es.bin --ch-fields user_id,author_id,my_timestamp --ch-pass xyz --ch-db my_db --ch-host host --ch-table my_table --ch-query-timeout 60 --ch-conn-timeout 10 --es-blksz 5000 --es-host host --es-idx my_index --tn 4 --ch-cursor 1 --ch-tsc-step 10 --ch-tsc-min 1622505600 --ch-tsc-max 1624924800 --ch-tsc-field my_timestamp --ch-dot-replacer _
-    ```
-     
- 3. transfer with offset/limit cursor
- 
-    ```bash
-    ./ch2es.bin --ch-fields user_id,author_id,my_timestamp --ch-pass xyz --ch-db my_db --ch-host host --ch-table my_table --ch-query-timeout 60 --ch-conn-timeout 10 --es-blksz 5000 --es-host host --es-idx my_index --tn 4 --ch-cursor 1 --ch-ofc-limit 10 --ch-ofc-max-offset 2000000 --ch-ofc-offset 20 --ch-ofc-order user_id --ch-dot-replacer _
-    ```
- 
- 4. transfer from stdin
+1. transfer from file
 
-    ```bash
-    clickhouse-client -h 0.0.0.0 -q "select * from info limit 1000 format JSONEachRow" | ./ch2es.bin --es-blksz 1000 --es-host 0.0.0.0 --es-port 9200 --es-idx test_idx --tn 1 --ch-cursor 3
-    ```
+```bash
+./ch2es.bin --es-bulksz=1000 --es-host=host --es-port=9201 --es-idx=idx --tn=16 --ch-cursor=2 --ch-jfc-file=./q.json --es-dot-replacer=_
+```
+
+2. transfer with timestamp cursor
+
+```bash
+./ch2es.bin --ch-fields=user_id,author_id,my_timestamp --ch-pass=xyz --ch-db=my_db --ch-host=host --ch-table=my_table --ch-query-timeout=60 --ch-conn-timeout=10 --es-bulksz=5000 --es-host=host --es-idx=my_index --tn=4 --ch-cursor=1 --ch-tsc-step=10 --ch-tsc-min=1622505600 --ch-tsc-max=1624924800 --ch-tsc-field=my_timestamp --es-dot-replacer=_
+```
+ 
+3. transfer with offset/limit cursor
+
+```bash
+./ch2es.bin --ch-fields=user_id,author_id,my_timestamp --ch-pass=xyz --ch-db=my_db --ch-host=host --ch-table=my_table --ch-query-timeout=60 --ch-conn-timeout=10 --es-bulksz=5000 --es-host=host --es-idx=my_index --tn=4 --ch-cursor=1 --ch-ofc-limit=10 --ch-ofc-max-offset=2000000 --ch-ofc-offset=20 --ch-ofc-order=user_id --es-dot-replacer=_
+```
+
+4. transfer from stdin
+
+```bash
+clickhouse-client -h 0.0.0.0 -q "select * from info limit 1000 format JSONEachRow" | ./ch2es.bin --es-bulksz=1000 --es-host=host --es-port=9200 --es-idx=test_idx --tn=1 --ch-cursor=3
+```

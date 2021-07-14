@@ -1,6 +1,7 @@
 package ch
 
 import (
+	"ch2es/ch/cursor"
 	"ch2es/util"
 )
 
@@ -16,38 +17,41 @@ type Conf struct {
 	Table           string `desc:"table name"`
 	QueryTimeoutSec int    `desc:"query timeout sec"`
 	ConnTimeoutSec  int    `desc:"connection timeout sec"`
-	CursorT         int    `desc:"cursor type"`
+	CursorT         int    `desc:"Cursor type"`
 	Fields          string `desc:"fields"`
 	Condition       string `desc:"condition"`
-	DotReplacer     string `desc:"change dots symbol"`
 
-	// offset cursor
-	OFC *OffsetCursorConf `desc:"offset cursor config"`
+	// offset Cursor
+	OFC *cursor.OffsetCursorConf `desc:"offset cursor config"`
 
-	// timestamp cursor
-	TSC *TSCursorConf `desc:"timestamp cursor config"`
+	// timestamp Cursor
+	TSC *cursor.TimestampCursorConf `desc:"timestamp cursor config"`
 
-	// json file cursor
-	JFC *JSONFileCursorConf `desc:"json file cursor config"`
+	// json file Cursor
+	JFC *cursor.JSONFileCursorConf `desc:"json file cursor config"`
 
-	// stdin cursor
-	StdinC *StdInCursorConf `desc:"stdin cursor config"`
+	// stdin Cursor
+	StdinC *cursor.StdInCursorConf `desc:"stdin cursor config"`
+}
+
+func (c *Conf) printDB() {
+	util.PrintFromDesc("[CLICKHOUSE CONFIG]:", *c)
+	util.PrintFromDesc("[CLICKHOUSE CONFIG]:", c.URLParams)
+	util.PrintFromDesc("[CLICKHOUSE HTTP CONFIG]:", *c.HTTPConf)
 }
 
 func (c *Conf) Print() {
-	util.PrintFromDesc("[CLICKHOUSE HTTP CONFIG]:", *c.HTTPConf)
-
-	switch cursorT(c.CursorT) {
-	case offsetCursor:
+	switch cursor.T(c.CursorT) {
+	case cursor.Offset:
+		c.printDB()
 		util.PrintFromDesc("[CLICKHOUSE OFFSET CURSOR CONFIG]:", *c.OFC)
-	case timeStampCursor:
+	case cursor.Timestamp:
+		c.printDB()
 		util.PrintFromDesc("[CLICKHOUSE TIMESTAMP CURSOR CONFIG]:", *c.TSC)
-	case jsonFileCursor:
+	case cursor.JSONFile:
 		util.PrintFromDesc("[CLICKHOUSE JSON FILE CURSOR CONFIG]:", *c.JFC)
-	case stdinCursor:
+	case cursor.Stdin:
 		util.PrintFromDesc("[CLICKHOUSE STDIN CURSOR CONFIG]:", *c.StdinC)
 	}
 
-	util.PrintFromDesc("[CLICKHOUSE CONFIG]:", *c)
-	util.PrintFromDesc("[CLICKHOUSE CONFIG]:", c.URLParams)
 }
