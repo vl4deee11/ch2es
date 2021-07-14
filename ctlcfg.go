@@ -2,13 +2,17 @@ package main
 
 import (
 	"ch2es/ch"
+	"ch2es/ch/cursor"
 	"ch2es/es"
+	"ch2es/es/converter"
+	"ch2es/log"
 	"ch2es/util"
 	"flag"
 )
 
 type conf struct {
 	ThreadsNum int `desc:"threads number"`
+	LogLvl     int `desc:"log level"`
 	EsConf     *es.Conf
 
 	ChConf *ch.Conf
@@ -17,12 +21,15 @@ type conf struct {
 func (c *conf) parse() {
 	c.ChConf = &ch.Conf{
 		HTTPConf: new(util.HTTPConf),
-		TSC:      new(ch.TSCursorConf),
-		OFC:      new(ch.OffsetCursorConf),
-		JFC:      new(ch.JSONFileCursorConf),
-		StdinC:   new(ch.StdInCursorConf),
+		TSC:      new(cursor.TimestampCursorConf),
+		OFC:      new(cursor.OffsetCursorConf),
+		JFC:      new(cursor.JSONFileCursorConf),
+		StdinC:   new(cursor.StdInCursorConf),
 	}
-	c.EsConf = &es.Conf{HTTPConf: new(util.HTTPConf)}
+	c.EsConf = &es.Conf{
+		HTTPConf: new(util.HTTPConf),
+		NCC:      new(converter.NestedConverterConf),
+	}
 
 	// CLICKHOUSE
 	flag.StringVar(&c.ChConf.Protocol, "ch-protocol", "http", "[Clickhouse] protocol")
@@ -32,7 +39,6 @@ func (c *conf) parse() {
 	flag.StringVar(&c.ChConf.Condition, "ch-cond", "", "[Clickhouse] where condition")
 	flag.StringVar(&c.ChConf.DB, "ch-db", "default", "[Clickhouse] db name")
 	flag.StringVar(&c.ChConf.Table, "ch-table", "", "[Clickhouse] table")
-	flag.StringVar(&c.ChConf.DotReplacer, "ch-dot-replacer", "", "[Clickhouse] Replacer for dots in fields if need")
 	flag.StringVar(&c.ChConf.URLParams.User, "ch-user", "", "[Clickhouse] db username")
 	flag.StringVar(&c.ChConf.URLParams.Pass, "ch-pass", "", "[Clickhouse] db password")
 	flag.IntVar(&c.ChConf.ConnTimeoutSec, "ch-conn-timeout", 20, "[Clickhouse] connect timeout in sec")
@@ -56,7 +62,7 @@ func (c *conf) parse() {
 	flag.IntVar(&c.ChConf.JFC.Line, "ch-jfc-line", 0, "[Clickhouse json file cursor] start line in file with data formatted JSONEachRow. Use only if --ch-cursor=2")
 
 	// CLICKHOUSE stdin cursor
-	flag.IntVar(&c.ChConf.StdinC.Line, "ch-stdinc-line", 0, "[Clickhouse stdin cursor] start line in stdin with data formatted JSONEachRow. Use only if --ch-cursor=3")
+	flag.IntVar(&c.ChConf.StdinC.Line, "ch-sc-line", 0, "[Clickhouse stdin cursor] start line in stdin with data formatted JSONEachRow. Use only if --ch-cursor=3")
 
 	// ELASTIC
 	flag.StringVar(&c.EsConf.Protocol, "es-protocol", "http", "[Elasticsearch] protocol")
@@ -67,16 +73,29 @@ func (c *conf) parse() {
 	flag.StringVar(&c.EsConf.User, "es-user", "", "[Elasticsearch] search username")
 	flag.StringVar(&c.EsConf.Pass, "es-pass", "", "[Elasticsearch] search password")
 	flag.StringVar(&c.EsConf.Index, "es-idx", "", "[Elasticsearch] search index")
-	flag.IntVar(&c.EsConf.BlkSz, "es-blksz", 0, "[Elasticsearch] search bulk insert size")
+	flag.IntVar(&c.EsConf.BulkSz, "es-bulksz", 0, "[Elasticsearch] search bulk insert size")
+	flag.IntVar(&c.EsConf.ConverterT, "es-converter", 0, "[Elasticsearch] converter type. Available 0 (null converter), 1 (nested converter)")
+	flag.StringVar(&c.EsConf.DotReplacer, "es-dot-replacer", "", "[Elasticsearch] Replacer for dots in fields if need")
+
+	// ELASTIC nested converter
+	flag.StringVar(&c.EsConf.NCC.Field, "es-nc-field", "data", "[Elasticsearch nested converter] nested array field name. Use only if --es-conv=1")
+	flag.BoolVar(&c.EsConf.NCC.AddNull, "es-nc-null", false, "[Elasticsearch nested converter] add null values to objects in nested array. Use only if --es-conv=1")
 
 	// COMMON
-	flag.IntVar(&c.ThreadsNum, "tn", 0, "[Common] Threads number for parallel insert and read")
+	flag.IntVar(&c.ThreadsNum, "tn", 0, "[Common] threads number for parallel write and read")
+	flag.IntVar(&c.LogLvl, "v", 0, "[Common] verbosity level. 0 - info, 1 - error, 2 - debug")
 	flag.Parse()
+
+	err := log.Init(c.LogLvl)
+	if err != nil {
+		panic(err)
+	}
+
 	c.print()
 }
 
 func (c *conf) print() {
 	c.ChConf.Print()
 	c.EsConf.Print()
-	util.PrintFromDesc("[COMMON CONFIG]", *c)
+	util.PrintFromDesc("[COMMON CONFIG]:", *c)
 }

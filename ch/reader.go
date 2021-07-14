@@ -2,11 +2,12 @@ package ch
 
 import (
 	"bytes"
+	"ch2es/ch/cursor"
+	"ch2es/log"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"reflect"
 	"strings"
@@ -15,43 +16,42 @@ import (
 )
 
 type Reader struct {
-	dsnURL      string
-	cli         *http.Client
-	qTimeout    time.Duration
-	cursorT     cursorT
-	dotReplacer string
+	dsnURL   string
+	cli      *http.Client
+	qTimeout time.Duration
+	cursorT  cursor.T
 }
 
-func NewReader(cfg *Conf) (*Reader, Cursor, error) {
-	r := new(Reader)
-	r.dotReplacer = cfg.DotReplacer
-	r.cursorT = cursorT(cfg.CursorT)
+func NewReader(cfg *Conf) (*Reader, cursor.Cursor, error) {
+	r := &Reader{
+		cursorT: cursor.T(cfg.CursorT),
+	}
 
 	switch r.cursorT {
-	case jsonFileCursor:
-		cur, err := NewJSONFileCursor(cfg.JFC)
+	case cursor.JSONFile:
+		cur, err := cursor.NewJSONFile(cfg.JFC)
 		return r, cur, err
-	case stdinCursor:
-		cur, err := NewStdInCursor(cfg.StdinC)
+	case cursor.Stdin:
+		cur, err := cursor.NewStdin(cfg.StdinC)
 		return r, cur, err
-	case offsetCursor, timeStampCursor:
+	case cursor.Offset, cursor.Timestamp:
 		cfg.BuildHTTP()
 		r.qTimeout = time.Duration(cfg.QueryTimeoutSec) * time.Second
 		r.cli = &http.Client{
 			Timeout: time.Duration(cfg.ConnTimeoutSec) * time.Second,
 		}
 		r.dsnURL = r.httpF(cfg)
-		var cur Cursor
+		var cur cursor.Cursor
 		if cfg.CursorT == 0 {
-			cur = NewOffsetCursor(cfg)
+			cur = cursor.NewOffset(cfg.OFC, cfg.Fields, cfg.DB, cfg.Table, cfg.Condition)
 		} else {
-			cur = NewTimestampCursor(cfg)
+			cur = cursor.NewTimestamp(cfg.TSC, cfg.Fields, cfg.DB, cfg.Table, cfg.Condition)
 		}
 
 		err := r.ping(cfg)
 		return r, cur, err
 	}
-	return nil, nil, fmt.Errorf("bad cursor")
+	return nil, nil, fmt.Errorf("bad Cursor")
 }
 
 func (r *Reader) ping(cfg *Conf) error {
@@ -108,33 +108,22 @@ func (r *Reader) httpF(cfg *Conf) string {
 	return url
 }
 
-func (r *Reader) Read(
-	ch chan *bytes.Buffer,
-	wCh chan map[string]interface{},
-	eCh chan error,
-	wg *sync.WaitGroup,
-) {
-	log.Println("start new clickhouse reader")
+func (r *Reader) Read(ch chan *bytes.Buffer, wCh chan map[string]interface{}, eCh chan error, wg *sync.WaitGroup) {
+	log.Info("start new clickhouse reader")
 	switch r.cursorT {
-	case jsonFileCursor, stdinCursor:
-		r.readFile(ch, wCh, eCh, wg)
-	case offsetCursor, timeStampCursor:
+	case cursor.JSONFile, cursor.Stdin:
+		r.readIO(ch, wCh, eCh, wg)
+	case cursor.Offset, cursor.Timestamp:
 		r.readHTTP(ch, wCh, eCh, wg)
 	}
 }
 
-func (r *Reader) readHTTP(
-	ch chan *bytes.Buffer,
-	wCh chan map[string]interface{},
-	eCh chan error,
-	wg *sync.WaitGroup,
-) {
+func (r *Reader) readHTTP(ch chan *bytes.Buffer, wCh chan map[string]interface{}, eCh chan error, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
-		log.Println("reader is stop")
+		log.Info("reader is stop")
 	}()
 
-	cleaner := r.getJSONCleaner()
 	for q := range ch {
 		data, err := r.get(q)
 		if err != nil {
@@ -143,7 +132,7 @@ func (r *Reader) readHTTP(
 		}
 
 		for i := range data {
-			wCh <- cleaner(data[i].(map[string]interface{}))
+			wCh <- data[i].(map[string]interface{})
 		}
 	}
 }
@@ -179,73 +168,18 @@ func (r *Reader) get(buff *bytes.Buffer) ([]interface{}, error) {
 	return bodyM["data"].([]interface{}), nil
 }
 
-func (r *Reader) readFile(
-	ch chan *bytes.Buffer,
-	wCh chan map[string]interface{},
-	eCh chan error,
-	wg *sync.WaitGroup,
-) {
+func (r *Reader) readIO(ch chan *bytes.Buffer, wCh chan map[string]interface{}, eCh chan error, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
-		log.Println("reader is stop")
+		log.Info("reader is stop")
 	}()
 
-	cleaner := r.getJSONCleaner()
 	for b := range ch {
 		data := map[string]interface{}{}
 		if err := json.Unmarshal(b.Bytes(), &data); err != nil {
 			eCh <- err
 			break
 		}
-		wCh <- cleaner(data)
+		wCh <- data
 	}
-}
-
-func (r *Reader) getJSONCleaner() func(d map[string]interface{}) map[string]interface{} {
-	if r.dotReplacer != "" {
-		return func(d map[string]interface{}) map[string]interface{} {
-			m := d
-			for k := range m {
-				kk := strings.ReplaceAll(k, ".", r.dotReplacer)
-				if kk != k {
-					m[kk] = m[k]
-					delete(m, k)
-				}
-			}
-			return m
-		}
-	}
-
-	return func(d map[string]interface{}) map[string]interface{} {
-		return d
-	}
-}
-
-//nolint:unused //set TODO
-// TODO: parse dots from fields name and generate sub-maps
-func (r *Reader) rebuildJSON(d map[string]interface{}) map[string]interface{} {
-	m := make(map[string]interface{})
-	for k := range d {
-		if subNames := strings.Split(k, "."); len(subNames) > 1 {
-			fmt.Println(subNames)
-			cm, ok := m[subNames[0]]
-			if !ok {
-				m[subNames[0]] = make(map[string]interface{})
-				cm = m[subNames[0]]
-			}
-			tm := cm.(map[string]interface{})
-			for i := 1; i < len(subNames); i++ {
-				_, ok = tm[subNames[i]]
-				if !ok {
-					tm[subNames[i]] = make(map[string]interface{})
-					tm = tm[subNames[i]].(map[string]interface{})
-				}
-			}
-
-			tm[subNames[len(subNames)-1]] = d[k]
-		} else {
-			m[subNames[0]] = d[k]
-		}
-	}
-	return m
 }
